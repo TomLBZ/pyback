@@ -1,0 +1,6 @@
+__pycache__
+.vs
+.vscode
+.vscode-server
+.bash_history
+.secrets/config.json
