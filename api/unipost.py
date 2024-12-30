@@ -1,14 +1,10 @@
 from bridge.mdb import Mdb
 from api.auth import UserManager
-import os
-import json
+from api.secret import Secret
 
-# config.json is locates at project_root/secrets/config.json
-secret_json = os.path.join(os.path.dirname(__file__), "..", "secrets", "config.json")
-secret_obj = json.load(open(secret_json))
-
-mdb = Mdb(secret_obj["mdbstr"], "devdb")
-mng = UserManager(mdb, timeout_seconds=1800)
+sec = Secret()
+mdb = Mdb(sec.mdb_url, sec.mdb_name)
+mng = UserManager(mdb, timeout_seconds=sec.auth_timeout)
 
 def login(data):
     return mng.login(data)
