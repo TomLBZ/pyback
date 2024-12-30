@@ -12,6 +12,6 @@ services:
     volumes:
       - .:/app
     # production command
-    command: bash -c "source /home/lbz/venv/bin/activate && python3 app.py"
+    # command: bash -c "source /home/lbz/venv/bin/activate && python3 app.py"
     # development command, halt the container
-    # command: /bin/bash
+    command: /bin/bash
