@@ -42,8 +42,6 @@ Auto-reload on code changes.
     docker exec -it pyback bash
     # Inside the container, start the server
     python3 app.py
-    # Exit the container
-    exit
     ```
 5. Test the API
     ```bash
