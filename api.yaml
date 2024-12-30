@@ -1,0 +1,107 @@
+openapi: "3.0.0"
+info:
+  title: "UniAPI"
+  version: "0.0.1"
+paths:
+  /:
+    get:
+      description: Root GET
+      x-openapi-router-controller: api.get
+      operationId: rootGet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Hello World!"
+        "500":
+          description: Internal Server Error
+  /uniPost:
+    post:
+      description: Unified entrance to the API
+      x-openapi-router-controller: api.unipost
+      operationId: uniPost
+      parameters:
+      - description: operator login token
+        explode: false
+        in: header
+        name: token
+        required: false
+        schema:
+          $ref: '#/components/schemas/uniRequestBody'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/uniRequestBody'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uniResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: An unified entrance to the API
+      tags:
+      - uniPost
+    options:
+      description: CORS preflight handler
+      x-openapi-router-controller: api.unipost
+      operationId: uniPostOptions
+      responses:
+        "200":
+          description: OK
+      summary: CORS preflight handler
+
+components:
+  schemas:
+    uniRequestBody:
+      type: object
+      title: Unified Request Body
+      description: Request body for the unified API entrance
+      properties:
+        op:
+          type: string
+          title: Operation Code
+          description: The operation code
+        data:
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+            - type: number
+            - type: boolean
+          title: Operation Payload
+          description: The data payload for the operation
+      required:
+        - op
+        - data
+
+    uniResponse:
+      type: object
+      title: Unified Response
+      description: Generic response that can contain any data
+      properties:
+        data:
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+            - type: number
+            - type: boolean
+          title: Any Data
+          description: The data response, could be anything
+      required:
+        - data

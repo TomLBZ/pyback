@@ -3,4 +3,4 @@ __pycache__
 .vscode
 .vscode-server
 .bash_history
-.secrets/config.json
+secrets/config.json

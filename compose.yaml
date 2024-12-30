@@ -1,0 +1,17 @@
+name: pyback
+services:
+  pyback:
+    image: pyback
+    build: .
+    container_name: pyback
+    restart: always
+    ports:
+      - "18000:8000"
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/app
+    # production command
+    # command: source /home/lbz/venv/bin/activate && python3 app.py
+    # development command, halt the container
+    command: /bin/bash
