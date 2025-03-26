@@ -4,3 +4,5 @@ __pycache__
 .vscode-server
 .bash_history
 secrets/config.json
+bridge/deploy.py
+api/funcmap.py
