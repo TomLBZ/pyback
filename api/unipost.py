@@ -1,39 +1,41 @@
-from bridge.mdb import Mdb
-from api.auth import UserManager
-from api.secret import Secret
+# from api.funcmap_template import funcMap
+from api.funcmap import funcMap
+from starlette.datastructures import UploadFile
+from typing import Any, List
+from api.types import FileDict, FileEntry, FileEntryData
 
-sec = Secret()
-mdb = Mdb(sec.mdb_url, sec.mdb_name)
-mng = UserManager(mdb, timeout_seconds=sec.auth_timeout)
-
-def login(data):
-    return mng.login(data)
-
-def testlogin(data):
-    return mng.testlogin(data)
-
-def uniget(data):
-    cname = data['cname']
-    results = mdb.find_all(cname, remove_id=True)
-    return {"results": results}
-
-def unisave(data):
-    cname, data = data['cname'], data['data']
-    res = mdb.update_all(cname, data, remove_old=True, upsert=True)
-    return {"success": res}
-
-funcMap = {
-    "login": login,
-    "testlogin": testlogin,
-    "get": uniget,
-    "save": unisave,
-}
-
-def uniPost(body):
-    op, data = body['op'], body['data']
+def uniPostJson(body: dict = {}):
+    op: str = body.get("op", None)
+    data: dict = body.get("data", None)
     if op in funcMap:
-        return funcMap[op](data)
-    return f"Operation: {op}, Data: {data}"
+        return funcMap[op](data) if data else funcMap[op]()
+    return funcMap["error"]("Invalid operation: " + op)
+
+def readFile(file: Any) -> FileEntryData:
+    if isinstance(file, UploadFile):
+        return file.file.read() # synchronous read
+    return None # other file types not supported
+
+def fileToParams(file: Any) -> FileDict:
+    fname: str = getattr(file, "filename", "uploaded_file")
+    content_type: str = getattr(file, "content_type", "application/octet-stream")
+    fbytes: FileEntryData = readFile(file)
+    fentry: FileEntry = (fname, fbytes, content_type)
+    return { "file": fentry }
+
+def uniPostMultipart(body: dict = {}, file: Any = None, files: List[Any] | Any = None):
+    op: str = body.get("op", None)
+    data: dict = body.get("data", None)
+    if op in funcMap: # op is valid
+        if file: # single file
+            fparams: FileDict = fileToParams(file)
+            return funcMap[op](data, fparams) if data else funcMap[op](fparams)
+        elif files: # multiple files
+            fparams: List[FileDict] = [fileToParams(f) for f in files]
+            return funcMap[op](data, fparams) if data else funcMap[op](fparams)
+        else: # no file
+            return funcMap[op](data) if data else funcMap[op]()
+    return funcMap["error"]("Invalid operation: " + op)
 
 def uniPostOptions():
     return {"message": "Options"}
