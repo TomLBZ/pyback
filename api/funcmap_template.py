@@ -6,7 +6,7 @@ from bridge.deploy_template import Deployment
 sec = Secret()
 mdb = Mdb(sec.mdb_url, sec.mdb_name)
 mng = UserManager(mdb, timeout_seconds=sec.auth_timeout)
-svr = Deployment(sec.aero_address)
+svr = Deployment(sec.svr_address)
 
 def uniSave(data):
     cname, data = data['cname'], data['data']
