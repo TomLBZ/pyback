@@ -1,7 +1,7 @@
 from typing import Any
 from connexion.lifecycle import ConnexionResponse
-from api.types import FileDict
 import requests
+import json as jsonlib
 
 class Response(dict):
     def __init3__(self, success: bool, msg: str, data: dict):
@@ -34,13 +34,16 @@ class Server:
         except: # non-json, may be downloading a file
             return Response(True, "Downloaded file", res.content)
 
+    def _data_to_json(self, data: dict | Any) -> str:
+        return data.to_json() if hasattr(data, "to_json") else jsonlib.dumps(data) if isinstance(data, dict) else data
+
     def _post(self, addr: str, json: dict | Any) -> Response:
-        json = json.to_json() if hasattr(json, "to_json") else json
+        json = self._data_to_json(json)
         res = requests.post(self.address_base + addr, json=json)
         return self._res_to_response(res)
     
-    def _post_multipart(self, addr: str, body: dict, fileParams: FileDict) -> Response:
-        res = requests.post(self.address_base + addr, data=body, files=fileParams)
+    def _post_multipart(self, addr: str, data: dict) -> Response:
+        res = requests.post(self.address_base + addr, files=data)
         return self._res_to_response(res)
     
     def _get(self, addr: str) -> Response:
@@ -48,7 +51,7 @@ class Server:
         return self._res_to_response(res)
 
     def _put(self, addr: str, json: dict | Any) -> Response:
-        json = json.to_json() if hasattr(json, "to_json") else json
+        json = self._data_to_json(json)
         res = requests.put(self.address_base + addr, json=json)
         return self._res_to_response(res)
     
