@@ -1,2 +1,2 @@
 def rootGet():
-    return {"message": "Hello, World!"}
+    return {"data": "Hello, World!"}
