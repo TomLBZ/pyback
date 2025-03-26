@@ -1,5 +1,5 @@
-from typing import Dict, Tuple, Union, BinaryIO
+from typing import Dict, Tuple, BinaryIO, List
 
-FileEntryData = Union[str, bytes, BinaryIO]
-FileEntry = Tuple[str, FileEntryData, str]
-FileDict = Dict[str, FileEntry]
+FileLike = str | bytes | BinaryIO
+FileEntry = Tuple[str, FileLike, str]
+FileDict = Dict[str, FileEntry | List[FileEntry]]
