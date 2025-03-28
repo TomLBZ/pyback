@@ -1,15 +1,20 @@
 from typing import Any
 from connexion.lifecycle import ConnexionResponse
-import requests
-import json as jsonlib
+import requests, json
 
 class Response(dict):
     def __init3__(self, success: bool, msg: str, data: dict):
         self["success"] = success
         self["msg"] = msg
         self["data"] = data
-    def __init1__(self, json: dict):
-        self.__init3__(json["success"], json["msg"], json["data"] if "data" in json else {})
+    def __init1__(self, data: dict):
+        s = data.get("success", False)
+        m = data.get("msg", "No Message")
+        d = data.get("data", {})
+        if d == {} and m == "No Message" and s == False:
+            self.__init3__(False, "Invalid response format", data)
+        else:
+            self.__init3__(s, m, d)
     def __init__(self, *args):
         if len(args) == 1:
             self.__init1__(args[0])
@@ -18,31 +23,43 @@ class Response(dict):
         else:
             raise ValueError("Invalid number of arguments")
     def toJsonResponse(self) -> ConnexionResponse:
-        return ConnexionResponse(status_code=200, content_type="application/json", body=self)
+        return ConnexionResponse(status_code=200, content_type="application/json", body=self["data"])
     def toOctetResponse(self) -> ConnexionResponse:
         return ConnexionResponse(status_code=200, content_type="application/octet-stream", body=bytes(self["data"]))
+    def toAutoResponse(self) -> ConnexionResponse:
+        if isinstance(self["data"], bytes):
+            return self.toOctetResponse()
+        return self.toJsonResponse()
     
 class Server:
     def __init__(self, address: str) -> None:
         self.address_base = address
 
     def _res_to_response(self, res: requests.Response) -> Response:
-        if (res.status_code != 200):
-            return Response(False, "Failed to connect to Server", {})
-        try:
-            return Response(res.json())
-        except: # non-json, may be downloading a file
-            return Response(True, "Downloaded file", res.content)
+        prefix = "Success" if res.ok else "Failed"
+        content_type = res.headers.get("Content-Type", "unknown")
+        data = res.json() if content_type == "application/json" \
+            else res.content if content_type == "application/octet-stream" \
+            else res.text if content_type == "text/html" \
+            else f"Unsupported content type: {content_type}"
+        return Response(res.ok, f"{prefix} {res.status_code}:", data)
 
-    def _data_to_json(self, data: dict | Any) -> str:
-        return data.to_json() if hasattr(data, "to_json") else jsonlib.dumps(data) if isinstance(data, dict) else data
+    def _to_dict(self, data: dict | bytes | Any) -> str:
+        if isinstance(data, dict):
+            return data
+        elif (hasattr(data, "to_json")):
+            return data.to_json()
+        elif isinstance(data, bytes):
+            return json.loads(data.decode("utf-8"))
+        return {"data": data}
 
-    def _post(self, addr: str, json: dict | Any) -> Response:
-        json = self._data_to_json(json)
-        res = requests.post(self.address_base + addr, json=json)
+    def _post(self, addr: str, data: dict | Any) -> Response:
+        data = self._to_dict(data)
+        res = requests.post(self.address_base + addr, json=data)
         return self._res_to_response(res)
     
-    def _post_multipart(self, addr: str, data: dict) -> Response:
+    def _post_multipart(self, addr: str, data: dict | Any) -> Response:
+        data = self._to_dict(data)
         res = requests.post(self.address_base + addr, files=data)
         return self._res_to_response(res)
     
@@ -50,9 +67,9 @@ class Server:
         res = requests.get(self.address_base + addr)
         return self._res_to_response(res)
 
-    def _put(self, addr: str, json: dict | Any) -> Response:
-        json = self._data_to_json(json)
-        res = requests.put(self.address_base + addr, json=json)
+    def _put(self, addr: str, data: dict | Any) -> Response:
+        data = self._to_dict(data)
+        res = requests.put(self.address_base + addr, json=data)
         return self._res_to_response(res)
     
     def _delete(self, addr: str) -> Response:
