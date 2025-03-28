@@ -53,7 +53,6 @@ paths:
                     - type: array
                     - type: string
                     - type: number
-                    - type: integer
                     - type: boolean
                   title: Operation Payload
                   description: The data payload for the operation
@@ -194,7 +193,6 @@ components:
             - type: array
             - type: string
             - type: number
-            - type: integer
             - type: boolean
           title: Any Data
           description: The data response, could be anything
