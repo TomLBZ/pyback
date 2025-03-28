@@ -8,7 +8,7 @@ def uniPostJson(body: dict = {}):
     data: dict = body.get("data", None)
     if op in funcMap:
         return funcMap[op](data) if data else funcMap[op]()
-    return funcMap["error"]("Invalid operation: " + op)
+    return {"success": False, "msg": "Invalid operation: " + op, "data": {}}
 
 def uniPostMultipart(body: dict = {}, file: Any = None, files: List[Any] | Any = None):
     op: str = body.get("op", None)
@@ -21,7 +21,7 @@ def uniPostMultipart(body: dict = {}, file: Any = None, files: List[Any] | Any =
             return funcMap[op](fparams)
         fparams = combineFileDicts(fparams, dataToFileDict(data))
         return funcMap[op](fparams)
-    return funcMap["error"]("Invalid operation: " + op)
+    return {"success": False, "msg": "Invalid operation: " + op, "data": {}}
 
 def uniPostOptions():
     return {"message": "Options"}
