@@ -3,6 +3,11 @@ from connexion.lifecycle import ConnexionResponse
 import requests, json
 
 class Response(dict):
+    def __init4__(self, success: bool, msg: str, data: dict, ctype: str):
+        self["success"] = success
+        self["msg"] = msg
+        self["data"] = data
+        self["content_type"] = ctype
     def __init3__(self, success: bool, msg: str, data: dict):
         self["success"] = success
         self["msg"] = msg
@@ -20,29 +25,77 @@ class Response(dict):
             self.__init1__(args[0])
         elif len(args) == 3:
             self.__init3__(*args)
+        elif len(args) == 4:
+            self.__init4__(*args)
         else:
             raise ValueError("Invalid number of arguments")
     def toJsonResponse(self) -> ConnexionResponse:
         return ConnexionResponse(status_code=200, content_type="application/json", body=self["data"])
-    def toOctetResponse(self) -> ConnexionResponse:
+    def toFileResponse(self) -> ConnexionResponse:
         return ConnexionResponse(status_code=200, content_type="application/octet-stream", body=bytes(self["data"]))
+    def toTextResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="text/plain", body=str(self["data"]))
+    def toHtmlResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="text/html", body=str(self["data"]))
+    def toCsvResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="text/csv", body=str(self["data"]))
+    def toXmlResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="application/xml", body=str(self["data"]))
+    def toYamlResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="application/x-yaml", body=str(self["data"]))
+    def toFormResponse(self) -> ConnexionResponse:
+        return ConnexionResponse(status_code=200, content_type="application/x-www-form-urlencoded", body=str(self["data"]))
     def toAutoResponse(self) -> ConnexionResponse:
         if isinstance(self["data"], bytes):
-            return self.toOctetResponse()
-        return self.toJsonResponse()
+            return self.toFileResponse()
+        elif isinstance(self["data"], dict):
+            return self.toJsonResponse()
+        elif isinstance(self["data"], str):
+            ctype = self.get("content_type", "unknown")
+            if "application/json" in ctype:
+                return self.toJsonResponse()
+            elif "application/octet-stream" in ctype:
+                return self.toFileResponse()
+            elif "application/x-www-form-urlencoded" in ctype:
+                return self.toFormResponse()
+            elif "application/xml" in ctype:
+                return self.toXmlResponse()
+            elif "application/x-yaml" in ctype:
+                return self.toYamlResponse()
+            elif "text/csv" in ctype:
+                return self.toCsvResponse()
+            elif "text/html" in ctype:
+                return self.toHtmlResponse()
+            elif "text/plain" in ctype:
+                return self.toTextResponse()
+            else:
+                return self.toTextResponse()
+        else:
+            return self.toTextResponse()
     
 class Server:
     def __init__(self, address: str) -> None:
         self.address_base = address
 
+    def _res_to_json(self, res: requests.Response) -> dict:
+        try:
+            return res.json()
+        except json.JSONDecodeError:
+            return {"success": False, "msg": "Invalid JSON response", "data": res.text}
+
     def _res_to_response(self, res: requests.Response) -> Response:
         prefix = "Success" if res.ok else "Failed"
         content_type = res.headers.get("Content-Type", "unknown")
-        data = res.json() if content_type == "application/json" \
-            else res.content if content_type == "application/octet-stream" \
-            else res.text if content_type == "text/html" \
+        data = self._res_to_json(res) if "application/json" in content_type \
+            else res.content if "application/octet-stream" in content_type \
+            else res.text if "application/x-www-form-urlencoded" in content_type \
+            else res.text if "application/xml" in content_type \
+            else res.text if "application/x-yaml" in content_type \
+            else res.text if "text/csv" in content_type \
+            else res.text if "text/html" in content_type \
+            else res.text if "text/plain" in content_type \
             else f"Unsupported content type: {content_type}"
-        return Response(res.ok, f"{prefix} {res.status_code}:", data)
+        return Response(res.ok, f"{prefix} {res.status_code}:", data, content_type)
 
     def _to_dict(self, data: dict | bytes | Any) -> str:
         if isinstance(data, dict):
